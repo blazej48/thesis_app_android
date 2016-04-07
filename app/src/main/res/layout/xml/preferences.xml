@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <EditTextPreference 
+        android:inputType="number"
+        android:key="@string/min_time"
+        android:defaultValue="@string/min_time_default"
+        android:title="@string/min_time"/>
+	<EditTextPreference 
+        android:inputType="number"
+        android:key="@string/min_distance"
+        android:defaultValue="@string/min_distance_default"
+        android:title="@string/min_distance"/>
+	<EditTextPreference 
+        android:inputType="number"
+        android:key="@string/min_speed"
+        android:defaultValue="@string/min_speed_default"
+        android:title="@string/min_speed"/>
+    <EditTextPreference
+        android:inputType="number"
+        android:key="@string/map_zoom"
+        android:defaultValue="@string/map_zoom_default"
+        android:title="@string/map_zoom"/>
+
+</PreferenceScreen>

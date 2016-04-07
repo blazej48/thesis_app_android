@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+                                                android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <android.support.v7.preference.EditTextPreference
+        android:inputType="number"
+        android:key="calibration_rate"
+        android:defaultValue="0"
+        android:title="calibration rate 0 - 0.0"/>
+    <android.support.v7.preference.CheckBoxPreference
+        android:key="use_steps_estimation"
+        android:defaultValue="false"
+        android:title="Use steps estimation"/>
+
+    </android.support.v7.preference.PreferenceScreen>
