@@ -15,30 +15,32 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
- 
+
+import szum.mthesis.indorpositiontracker.entities.Path;
+
 public class ExpandableListAdapter extends BaseExpandableListAdapter {
 
     private static final String TAG = ExpandableListAdapter.class.getSimpleName();
  
     private HistoryFragment mHistoryFragment;
-	private List<RunInfo> runList;
+	private List<Path> paths;
     private MainActivity mActivity;
     private Context mContext;
     // child data in format of header title, child title
     private HashMap<String, List<String>> _listDataChild;
     
       
-    public ExpandableListAdapter(MainActivity activity, List<RunInfo> runList, HistoryFragment historyFragment, Context context) {
+    public ExpandableListAdapter(MainActivity activity, List<Path> paths, HistoryFragment historyFragment, Context context) {
     	super();
     	mHistoryFragment = historyFragment;
         this.mActivity = activity;
         this.mContext = context;
-        this.runList = runList;
+        this.paths = paths;
 	}
 
 	@Override
     public Object getChild(int groupPosition, int childPosititon) {
-        return this._listDataChild.get(this.runList.get(groupPosition))
+        return this._listDataChild.get(this.paths.get(groupPosition))
                 .get(childPosititon);
     }
  
@@ -60,18 +62,18 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
         TextView expandedView = (TextView) convertView.findViewById(R.id.expanded);
 
         String text;
-        if( runList.get(position).getStepsCount() != 0 ){
-            text =  "Id: " + runList.get(position).getId() +
-                        "\nTime: " + runList.get(position).getDate() + " m" +
-        				"\nLat: " + runList.get(position).getInitLatitude() +
-        				"\nLong: " + runList.get(position).getInitLongitude() +
-        				"\nSteps count: " + runList.get(position).getStepsCount() +
-        				"\nWalk time: " + runList.get(position).getWalkTime()/1000 + " [s]" +
-        				"\nOrientation correction: " + runList.get(position).getRotationCorrection() + " *" +
-                        String.format("\nWalk distance: %.1f [m]", runList.get(position).getWalkDistance()) +
-                        String.format("\nEstimated step length: %.3f [m]", runList.get(position).getWalkDistance()/(double)runList.get(position).getStepsCount()) +
-                        String.format("\nEstimated step frequency: %.3f [1/s]", (double)runList.get(position).getStepsCount()/runList.get(position).getWalkTime()*1000) +
-                        String.format("\nAvg GPS accuracy: %.2f [m]", runList.get(position).getAvgAccuracy());
+        if( paths.get(position).getStepCount() != 0 ){
+            text =  "Id: " + paths.get(position).getId() +
+                        "\nTime: " + paths.get(position).getTime() +
+        				"\nLat: " + paths.get(position).getStartLatitude() +
+        				"\nLong: " + paths.get(position).getStartLongitude() +
+        				"\nSteps count: " + paths.get(position).getStepCount() +
+        				"\nWalk time: " + paths.get(position).getWalkTime()/1000 + " [s]" +
+        				"\nOrientation correction: " + paths.get(position).getOrientationCorrection() + " *" +
+                        String.format("\nWalk distance: %.1f [m]", paths.get(position).getWalkDistance()) +
+                        String.format("\nEstimated step length: %.3f [m]", paths.get(position).getWalkDistance()/(double)paths.get(position).getStepCount()) +
+                        String.format("\nEstimated step frequency: %.3f [1/s]", (double)paths.get(position).getStepCount()/paths.get(position).getWalkTime()*1000) +
+                        String.format("\nAvg GPS accuracy: %.2f [m]", paths.get(position).getAvgAccuracy());
         } else{
             Logger.w(TAG, "step count is 0 while displaying route info.");
             text = "step count: 0 !";
@@ -85,20 +87,18 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
         mapButton.setOnClickListener(new OnClickListener(){
 			@Override
 			public void onClick(View arg0) {
-                mActivity.openMap(runList.get(position));
+                mActivity.openMap(paths.get(position));
 			}
 		});
-        
+
 
         
         deleteButton.setOnClickListener(new OnClickListener(){
 			@Override
 			public void onClick(View arg0) {
 
-                Database database = new Database();
-                database.deleteData(runList.get(position).getDate(), runList.get(position).getDate());
-                database.close();
-		    	mHistoryFragment.onResume();
+                paths.get(position).deletePathAndSubsequentData();
+                mHistoryFragment.onResume();
 		}});
         
         return convertView;
@@ -116,7 +116,7 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
  
     @Override
     public int getGroupCount() {
-        return runList.size();
+        return paths.size();
     }
  
     @Override
@@ -135,7 +135,7 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
         
         SimpleDateFormat ft = new SimpleDateFormat ("E yyyy.MM.dd 'at' HH:mm:ss", Locale.US);
         
-        String text = ft.format(new Date(runList.get(position).getDate()));
+        String text = ft.format(new Date(paths.get(position).getTime()));
  
         TextView runHeader = (TextView) convertView.findViewById(R.id.historyelement);
         runHeader.setTypeface(null, Typeface.BOLD);

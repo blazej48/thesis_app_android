@@ -29,12 +29,17 @@ import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.orm.SugarContext;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import szum.mthesis.indorpositiontracker.entities.DbHelper;
+import szum.mthesis.indorpositiontracker.entities.GpsLocation;
+import szum.mthesis.indorpositiontracker.entities.Step;
 
 
 public class TrackingService extends Service implements LocationListener {
@@ -47,16 +52,15 @@ public class TrackingService extends Service implements LocationListener {
     private int stepsCount = 0;
     private long walkTime = 0; // [ns]
 
-    private List<MyLocation> gpsPoints;
+    private List<GpsLocation> gpsPoints;
     private PolylineOptions mRoute;
     private boolean bRunning = false;
-    private List<StepData> mStepsPath;
+    private List<Step> mStepsPath;
     private boolean isFirstLocaiton = false;
     private LocationManager mLocationManager;
 
     private List<DataChangedListener> mListeners = new LinkedList<>();
 
-    private Database mDatabase;
     private PowerManager.WakeLock mWakeLock;
 
     private OrientationTracker mOrientTrckr = new OrientationTracker();
@@ -73,6 +77,9 @@ public class TrackingService extends Service implements LocationListener {
     public void onCreate() {
         Logger.d(TAG, "onCreate");
 
+        SugarContext.init(this);
+
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setSmallIcon(android.R.drawable.btn_star);
         builder.setContentTitle("Indoor Position Tracker");
@@ -83,7 +90,6 @@ public class TrackingService extends Service implements LocationListener {
         startForeground(1, builder.build());
 
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        mDatabase = new Database();
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakelockTag");
         mWakeLock.acquire();
 
@@ -118,9 +124,9 @@ public class TrackingService extends Service implements LocationListener {
 //                    break;
                 case Sensor.TYPE_STEP_DETECTOR:
                     if (isFirstLocaiton) {
-                        StepData stepData = new StepData(event.timestamp/1000000, mOrientTrckr.getCurrentOrientation());
-                        mStepsPath.add(stepData);
-                        Logger.d(TAG, "adding: " + stepData);
+                        Step step = new Step(event.timestamp/1000000, mOrientTrckr.getCurrentOrientation());
+                        mStepsPath.add(step);
+                        Logger.d(TAG, "adding: " + step);
 
                         if(startWalkingTime <= 0) { // init counting walking time alghoritm
                             startWalkingTime = event.timestamp;
@@ -161,7 +167,7 @@ public class TrackingService extends Service implements LocationListener {
         mCurrentAccuracy = location.getAccuracy();
         mOrientTrckr.processLocation(location);
         mRoute.add(new LatLng(location.getLatitude(), location.getLongitude()));
-        gpsPoints.add(new MyLocation(location, mOrientTrckr.getRealBearing(), mOrientTrckr.getRelativeBearing()));
+        gpsPoints.add(new GpsLocation(location, mOrientTrckr.getRealBearing(), mOrientTrckr.getRelativeBearing()));
         if(lastLocation != null){
             walkDistance += lastLocation.distanceTo(location);
         }
@@ -198,7 +204,7 @@ public class TrackingService extends Service implements LocationListener {
     private final IBinder mBinder = new LocalBinder();
 
     public void saveRoute() {
-        mDatabase.saveRoute(mStepsPath, gpsPoints, stepsCount, walkTime / 1000000, walkDistance, mOrientTrckr.getOrientationCorrection());
+        DbHelper.saveRoute(mStepsPath, gpsPoints, stepsCount, walkTime / 1000000, (long) walkDistance, (long) mOrientTrckr.getOrientationCorrection());
     }
 
     public void forceStart() {
@@ -223,9 +229,8 @@ public class TrackingService extends Service implements LocationListener {
     @Override
     public void onDestroy() {
         Logger.d(TAG, "onDestroy");
-        mDatabase.close();
         mWakeLock.release();
-
+        SugarContext.terminate();
         super.onDestroy();
     }
 

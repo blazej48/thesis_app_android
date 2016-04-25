@@ -23,6 +23,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.orm.SugarContext;
+import com.orm.util.SugarConfig;
+
+import szum.mthesis.indorpositiontracker.entities.Path;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -42,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     boolean mBound = false;
 
     private ViewPager mViewPager;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,8 +142,8 @@ public class MainActivity extends AppCompatActivity {
         Logger.clearLog();
     }
 
-    public void openMap(RunInfo runInfo){
-        mMapFragment.updateMap(runInfo);
+    public void openMap(Path path){
+        mMapFragment.updateMap(path);
     }
 
     public TrackingService getTrackingService() {

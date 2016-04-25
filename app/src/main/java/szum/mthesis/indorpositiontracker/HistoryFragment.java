@@ -10,6 +10,9 @@ import android.widget.ExpandableListView;
 
 import java.util.List;
 
+import szum.mthesis.indorpositiontracker.entities.GpsLocation;
+import szum.mthesis.indorpositiontracker.entities.Path;
+
 public class HistoryFragment extends Fragment{
 
     Button refreshButton;
@@ -26,9 +29,8 @@ public class HistoryFragment extends Fragment{
             refreshButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                            Database database = new Database();
-                            List<RunInfo> runList = database.getPaths();
-                            database.close();
+
+                            List<Path> runList = Path.listAll(Path.class);
 
                             View view = getView();
                             ExpandableListView adapterView = (ExpandableListView) view.findViewById(R.id.historylist);
@@ -50,9 +52,7 @@ public class HistoryFragment extends Fragment{
     public void onResume() {
         super.onResume();
 
-        Database database = new Database();
-        List<RunInfo> runList = database.getPaths();
-        database.close();
+        List<Path> runList = Path.listAll(Path.class);
 
         View view = getView();
         ExpandableListView adapterView = (ExpandableListView) view.findViewById(R.id.historylist);

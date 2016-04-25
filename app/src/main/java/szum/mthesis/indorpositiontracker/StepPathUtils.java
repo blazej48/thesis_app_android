@@ -8,6 +8,9 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.List;
 
+import szum.mthesis.indorpositiontracker.entities.GpsLocation;
+import szum.mthesis.indorpositiontracker.entities.Step;
+
 /**
  * Created by blazej on 4/1/2016.
  */
@@ -18,7 +21,7 @@ public class StepPathUtils {
         USING_STEP_MODEL
     }
 
-    public static PolylineOptions computeStepRoute(PathType pathType, List<StepData> steps, List<MyLatLng> gps, Context context){
+    public static PolylineOptions computeStepRoute(PathType pathType, List<Step> steps, List<GpsLocation> gps, Context context){
 
         PolylineOptions stepsRoute = new PolylineOptions();
         stepsRoute.geodesic(true);
@@ -40,7 +43,7 @@ public class StepPathUtils {
         double estLngth = results[1];
         switch (pathType){
             case SIMPLE_ESTIMATION:
-                for(StepData step : steps){
+                for(Step step : steps){
                     step.setmStepLength(estLngth);
                 }
                 break;
@@ -52,10 +55,10 @@ public class StepPathUtils {
         }
 
         // iterating over steps and creating path on map
-        LatLng myStep = new LatLng(gps.get(0).getLat(),gps.get(0).getLng());
+        LatLng myStep = new LatLng(gps.get(0).getLatitude(),gps.get(0).getLongitude());
         stepsRoute.add(myStep);
-        for (StepData step : steps){
-            myStep = Utils.calcNextStep(myStep, step.getmStepOrientation() + estBear, step.getmStepLength());
+        for (Step step : steps){
+            myStep = Utils.calcNextStep(myStep, step.getOrientation() + estBear, step.getmStepLength());
             stepsRoute.add(myStep);
         }
         return stepsRoute;

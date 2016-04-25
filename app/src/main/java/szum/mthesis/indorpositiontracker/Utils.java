@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import szum.mthesis.indorpositiontracker.entities.GpsLocation;
+import szum.mthesis.indorpositiontracker.entities.Step;
+
 /**
  * Created by blazej on 2/26/2016.
  */
@@ -49,10 +52,10 @@ public class Utils {
     }
 
 
-    public static void estimateStepLengths(List<StepData> stepDatas, double avgStepLength) {
-        filterStepsDurations(stepDatas);
-        double avgTime = stepDatas.get(stepDatas.size()-1).getmStepTime() - stepDatas.get(0).getmStepTime();
-        avgTime = avgTime/(stepDatas.size() -1 );
+    public static void estimateStepLengths(List<Step> Steps, double avgStepLength) {
+        filterStepsDurations(Steps);
+        double avgTime = Steps.get(Steps.size()-1).getStepTime() - Steps.get(0).getStepTime();
+        avgTime = avgTime/(Steps.size() -1 );
 
         // y = -2.9051x + 2.241;
         double a = -0.0026;
@@ -61,7 +64,7 @@ public class Utils {
         // compute step_lengths based on step_duration
         double stepLength;
         double stepDuration;
-        for(StepData step : stepDatas){
+        for(Step step : Steps){
             stepDuration = (double)step.getmStepDuration();
                 if(stepDuration < 650 && stepDuration > 400){
                     stepLength = a * stepDuration + b;
@@ -74,42 +77,42 @@ public class Utils {
         }
     }
 
-    private static void filterStepsDurations(List<StepData> stepDatas) {
-        long avgStepDuration = stepDatas.get(stepDatas.size() - 1 ).getmStepTime() - stepDatas.get(0).getmStepTime();
-        avgStepDuration = avgStepDuration/(stepDatas.size() -1 );
+    private static void filterStepsDurations(List<Step> Steps) {
+        long avgStepDuration = Steps.get(Steps.size() - 1 ).getStepTime() - Steps.get(0).getStepTime();
+        avgStepDuration = avgStepDuration/(Steps.size() -1 );
 
-        StepData prev = null;
+        Step prev = null;
         long duration;
-        stepDatas.get(0).setmStepDuration(avgStepDuration);
-        for(StepData stepData : stepDatas){ // calculate step duration of every step
+        Steps.get(0).setmStepDuration(avgStepDuration);
+        for(Step Step : Steps){ // calculate step duration of every step
             if(prev != null){
-                duration = stepData.getmStepTime() - prev.getmStepTime();
+                duration = Step.getStepTime() - prev.getStepTime();
                 if(duration > 1000){ // get rid of false steps
-                    stepData.setmStepDuration(avgStepDuration);
+                    Step.setmStepDuration(avgStepDuration);
                 }else{
-                    stepData.setmStepDuration(duration);
+                    Step.setmStepDuration(duration);
                 }
             }
-            prev = stepData;
+            prev = Step;
         }
 
-        if(stepDatas.size() < AVG_STEP_DURATION_FACTOR){
+        if(Steps.size() < AVG_STEP_DURATION_FACTOR){
             Logger.e(TAG, "filterStepsDurations - not enought");
         }
 
         long sum = 0;
         int first = 0, last = 0;
         for(; first < AVG_STEP_DURATION_FACTOR; first++){
-            sum = sum + stepDatas.get(first).getmStepDuration();
+            sum = sum + Steps.get(first).getmStepDuration();
         }
 
         int offset = (AVG_STEP_DURATION_FACTOR-1) / 2;
         int current = offset;
 
-        for(;first < (stepDatas.size()-1);){
-            stepDatas.get(current).setmStepDuration( sum / AVG_STEP_DURATION_FACTOR );
-            sum = sum - stepDatas.get(last).getmStepDuration();
-            sum = sum + stepDatas.get(first).getmStepDuration();
+        for(;first < (Steps.size()-1);){
+            Steps.get(current).setmStepDuration( sum / AVG_STEP_DURATION_FACTOR );
+            sum = sum - Steps.get(last).getmStepDuration();
+            sum = sum + Steps.get(first).getmStepDuration();
 
             last++;
             first++;
@@ -165,7 +168,7 @@ public class Utils {
     }
 
 
-    public static void estimateBearingAndStepLenght( List<MyLatLng> myRealRoute, List<StepData> mRealSteps, Context context, double[] results, boolean useStepModel ){
+    public static void estimateBearingAndStepLenght( List<GpsLocation> myRealRoute, List<Step> mRealSteps, Context context, double[] results, boolean useStepModel ){
 
         if(myRealRoute != null && myRealRoute.size() < 2){
             Logger.e(TAG, "real route is too short for estimating bearing and step lengths");
@@ -174,16 +177,16 @@ public class Utils {
             return;
         }
         double rate = getCalibrationRate(context);
-        List<MyLatLng> routeForCalibration = myRealRoute.subList(0, (int) Math.floor(myRealRoute.size() * rate));
+        List<GpsLocation> routeForCalibration = myRealRoute.subList(0, (int) Math.floor(myRealRoute.size() * rate));
 
-        long myLastTime = routeForCalibration.get(routeForCalibration.size() - 1).getTimestamp();
+        long myLastTime = routeForCalibration.get(routeForCalibration.size() - 1).getTime();
         int stepid = 0;
         for(; stepid < mRealSteps.size();stepid++){
-            if(mRealSteps.get(stepid).getmStepTime() > myLastTime){
+            if(mRealSteps.get(stepid).getStepTime() > myLastTime){
                 break;
             }
         }
-        List<StepData> mStepsListForCalibration;
+        List<Step> mStepsListForCalibration;
         if(stepid == 0){
             mStepsListForCalibration = mRealSteps;
         }else{
@@ -205,18 +208,18 @@ public class Utils {
         }
     }
 
-    public static double estimateRealDistance(List<MyLatLng> realRoute){
+    public static double estimateRealDistance(List<GpsLocation> realRoute){
         if(realRoute == null || realRoute.size() < 2){
             Logger.e(TAG, "too short route while computing real distance");
             return 1;
         }
         Location begining = new Location("no provider");
-        begining.setLatitude(realRoute.get(0).getLat());
-        begining.setLongitude(realRoute.get(0).getLng());
+        begining.setLatitude(realRoute.get(0).getLatitude());
+        begining.setLongitude(realRoute.get(0).getLongitude());
 
         Location end = new Location("no provider");
-        end.setLatitude(realRoute.get(realRoute.size() - 1).getLat());
-        end.setLongitude(realRoute.get(realRoute.size() - 1).getLng());
+        end.setLatitude(realRoute.get(realRoute.size() - 1).getLatitude());
+        end.setLongitude(realRoute.get(realRoute.size() - 1).getLongitude());
 
         double distance = (double)begining.distanceTo(end);
         Logger.d(TAG, "Real distance: " + distance);
@@ -224,25 +227,25 @@ public class Utils {
     }
 
 
-    public static double estimateRealBearing(List<MyLatLng> realRoute){
+    public static double estimateRealBearing(List<GpsLocation> realRoute){
         if(realRoute == null || realRoute.size() < 2){
             Logger.e(TAG, "too short route while computing real bearing");
             return 0;
         }
         Location begining = new Location("no provider");
-        begining.setLatitude(realRoute.get(0).getLat());
-        begining.setLongitude(realRoute.get(0).getLng());
+        begining.setLatitude(realRoute.get(0).getLatitude());
+        begining.setLongitude(realRoute.get(0).getLongitude());
 
         Location end = new Location("no provider");
-        end.setLatitude(realRoute.get(realRoute.size() - 1 ).getLat());
-        end.setLongitude(realRoute.get(realRoute.size() - 1).getLng());
+        end.setLatitude(realRoute.get(realRoute.size() - 1 ).getLatitude());
+        end.setLongitude(realRoute.get(realRoute.size() - 1).getLongitude());
 
         double bearing = (double)begining.bearingTo(end);
         Logger.d(TAG, "Real bearing: " + bearing);
         return bearing;
     }
 
-    public static void estimateRelativeBearingAndStepCount(List<StepData> steps, double[] results){
+    public static void estimateRelativeBearingAndStepCount(List<Step> steps, double[] results){
         if(steps == null || steps.size() < 2){
             Logger.e(TAG, "too short steps list while computing relative bearing");
             return;
@@ -252,8 +255,8 @@ public class Utils {
         double y = 0;
         double degree;
 
-        for(StepData step : steps){
-            degree = step.getmStepOrientation();
+        for(Step step : steps){
+            degree = step.getOrientation();
             x =  x + 1 * Math.sin(degree * TO_RAD);
             y  = y + 1 * Math.cos(degree * TO_RAD);
         }
@@ -269,7 +272,7 @@ public class Utils {
     }
 
 
-    public static double estimateRelativeBearing(List<StepData> steps){
+    public static double estimateRelativeBearing(List<Step> steps){
         if(steps == null || steps.size() < 2){
             Logger.e(TAG, "too short steps list while computing relative bearing");
             return 0;
@@ -279,8 +282,8 @@ public class Utils {
         double y = 0;
         double degree;
 
-        for(StepData step : steps){
-            degree = step.getmStepOrientation();
+        for(Step step : steps){
+            degree = step.getOrientation();
             x =  x + step.getmStepLength() * Math.sin(degree * TO_RAD);
             y  = y + step.getmStepLength() * Math.cos(degree * TO_RAD);
         }

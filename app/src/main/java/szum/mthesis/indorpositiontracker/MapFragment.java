@@ -19,6 +19,10 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.List;
 
+import szum.mthesis.indorpositiontracker.entities.GpsLocation;
+import szum.mthesis.indorpositiontracker.entities.Path;
+import szum.mthesis.indorpositiontracker.entities.Step;
+
 /**
  * This fragment displays information about current route, it adds listener to
  * GpsService to get notified about data changed
@@ -32,7 +36,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private Button mRefreshButton;
 
     private static final String TAG = TrackerFragment.class.getSimpleName();
-    private RunInfo mLastRunInfo;
+    private Path mLastPath;
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         if (container == null) {
@@ -60,8 +64,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mRefreshButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mLastRunInfo != null){
-                    updateMap(mLastRunInfo);
+                if(mLastPath != null){
+                    updateMap(mLastPath);
                 }
             }
         });
@@ -86,15 +90,15 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         super.onResume();
     }
 
-    public void updateMap(RunInfo runInfo) {
-        mLastRunInfo = runInfo;
+    public void updateMap(Path path) {
+        mLastPath = path;
 
-        Database database = new Database();
-        final PolylineOptions realRoute = database.getRoute(runInfo.getId());
+        final PolylineOptions realRoute = new PolylineOptions();
+        realRoute.geodesic(true);
         realRoute.color(Color.BLUE);
-        List<StepData> steps = database.getSteps(runInfo.getId());
-        List<MyLatLng> gps = database.getMyRoute(runInfo.getId());
-        database.close();
+        realRoute.addAll(path.getGpsPointsLatLng());
+        List<Step> steps = path.getSteps();
+        List<GpsLocation> gps = path.getGpsPoints();
 
         // security checks
         if(realRoute.getPoints().size() <= 2){
@@ -109,6 +113,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             Logger.e(TAG, "the gps list is too short");
             return;
         }
+
 
 
         final PolylineOptions stepsRoute = StepPathUtils.computeStepRoute(StepPathUtils.PathType.SIMPLE_ESTIMATION, steps, gps, getContext());
