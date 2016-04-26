@@ -1,5 +1,6 @@
 package szum.mthesis.indorpositiontracker;
 
+import android.bluetooth.BluetoothAdapter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.content.Intent;
@@ -108,6 +109,11 @@ public class MainActivity extends AppCompatActivity {
             mViewPager.setAdapter(mSectionsPagerAdapter);
             TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
             tabLayout.setupWithViewPager(mViewPager);
+
+            if ( ! mService.isBluetoothEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, 1);
+            }
         }
 
         @Override

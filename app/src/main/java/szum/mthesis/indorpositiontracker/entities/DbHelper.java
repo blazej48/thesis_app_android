@@ -1,5 +1,7 @@
 package szum.mthesis.indorpositiontracker.entities;
 
+import com.orm.SugarRecord;
+
 import java.util.Calendar;
 import java.util.List;
 
@@ -12,7 +14,7 @@ public class DbHelper {
 
     private static final String TAG = DbHelper.class.getSimpleName();
 
-    public static void saveRoute(List<Step> stepsList, List<GpsLocation> locations, int stepsCount,
+    public static void saveRoute(List<Step> stepsList, List<BleSample> bleSamples, List<GpsLocation> locations, int stepsCount,
                                        long walkTime, long walkDistance, long rotatCorr) {
 
         if (stepsList == null || stepsList.size() < 1) {
@@ -47,12 +49,17 @@ public class DbHelper {
 
         for (Step object : stepsList) {
             object.setPathId(pathId);
-            Step.save(object);
+            SugarRecord.save(object);
         }
 
         for (GpsLocation object : locations) {
             object.setPathId(pathId);
-            Step.save(object);
+            SugarRecord.save(object);
+        }
+
+        for (BleSample object : bleSamples) {
+            object.setPathId(pathId);
+            SugarRecord.save(object);
         }
     }
 

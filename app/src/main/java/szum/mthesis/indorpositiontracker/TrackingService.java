@@ -5,6 +5,12 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,7 +18,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -37,6 +42,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import szum.mthesis.indorpositiontracker.entities.BleSample;
 import szum.mthesis.indorpositiontracker.entities.DbHelper;
 import szum.mthesis.indorpositiontracker.entities.GpsLocation;
 import szum.mthesis.indorpositiontracker.entities.Step;
@@ -56,7 +62,9 @@ public class TrackingService extends Service implements LocationListener {
     private PolylineOptions mRoute;
     private boolean bRunning = false;
     private List<Step> mStepsPath;
+    private ArrayList<BleSample> bleSamples;
     private boolean isFirstLocaiton = false;
+
     private LocationManager mLocationManager;
 
     private List<DataChangedListener> mListeners = new LinkedList<>();
@@ -65,6 +73,7 @@ public class TrackingService extends Service implements LocationListener {
 
     private OrientationTracker mOrientTrckr = new OrientationTracker();
 
+    private BluetoothAdapter mBluetoothAdapter;
     private float mCurrentAccuracy = 0;
     private long mSystemStartUpTime = 0;
 
@@ -97,7 +106,46 @@ public class TrackingService extends Service implements LocationListener {
 
         registerStepDetector();
         reset();
+
+        // bluetooth
+        final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+        startScanning();
+
         super.onCreate();
+    }
+
+    public void startScanning() {
+
+        final BluetoothLeScanner bluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        if (mBluetoothAdapter.isEnabled()) {
+            ScanSettings.Builder builder = new ScanSettings.Builder();
+            builder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
+            bluetoothLeScanner.startScan(null, builder.build(), mScanCallback);
+        } else {
+            Toast.makeText(this, "bluetooth is off", Toast.LENGTH_SHORT);
+        }
+    }
+
+    private ScanCallback mScanCallback = new ScanCallback() {
+
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            int rssi = result.getRssi();
+            String name = result.getScanRecord().getDeviceName();
+            if(bRunning){
+                bleSamples.add(new BleSample(name, result.getTimestampNanos(), rssi));
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Logger.d(TAG, "Scan failed, errorCode: " + errorCode);
+        }
+    };
+
+    public boolean isBluetoothEnabled() {
+        return mBluetoothAdapter.isEnabled();
     }
 
     private void registerStepDetector() {
@@ -160,7 +208,7 @@ public class TrackingService extends Service implements LocationListener {
         if (!bRunning) {
             return;
         } // check, it GpsListener is started
-        if(isFirstLocaiton == false){
+        if(isFirstLocaiton == false) {
             mOrientTrckr.init();
             isFirstLocaiton = true;
         }
@@ -204,7 +252,7 @@ public class TrackingService extends Service implements LocationListener {
     private final IBinder mBinder = new LocalBinder();
 
     public void saveRoute() {
-        DbHelper.saveRoute(mStepsPath, gpsPoints, stepsCount, walkTime / 1000000, (long) walkDistance, (long) mOrientTrckr.getOrientationCorrection());
+        DbHelper.saveRoute(mStepsPath, bleSamples, gpsPoints, stepsCount, walkTime / 1000000, (long) walkDistance, (long) mOrientTrckr.getOrientationCorrection());
     }
 
     public void forceStart() {
@@ -231,6 +279,7 @@ public class TrackingService extends Service implements LocationListener {
         Logger.d(TAG, "onDestroy");
         mWakeLock.release();
         SugarContext.terminate();
+        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
         super.onDestroy();
     }
 
@@ -246,6 +295,7 @@ public class TrackingService extends Service implements LocationListener {
 
     /** clean generated gps data */
     public synchronized void reset() {
+        bleSamples = new ArrayList<>();
         gpsPoints = new ArrayList<>();
         mStepsPath = new ArrayList<>();
         mRoute = new PolylineOptions();
