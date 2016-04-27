@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.fragments;
 
 import android.graphics.Color;
 import android.os.Bundle;
@@ -14,14 +14,18 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.List;
 
-import szum.mthesis.indorpositiontracker.entities.GpsLocation;
-import szum.mthesis.indorpositiontracker.entities.Path;
-import szum.mthesis.indorpositiontracker.entities.Step;
+import szum.mthesis.indorpositiontracker.Logger;
+import szum.mthesis.indorpositiontracker.R;
+import szum.mthesis.indorpositiontracker.utils.BeaconUtils;
+import szum.mthesis.indorpositiontracker.utils.StepPathUtils;
+import szum.mthesis.indorpositiontracker.utils.Utils;
+import szum.mthesis.indorpositiontracker.orm.GpsLocation;
+import szum.mthesis.indorpositiontracker.orm.Path;
+import szum.mthesis.indorpositiontracker.orm.Step;
 
 /**
  * This fragment displays information about current route, it adds listener to
@@ -92,6 +96,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     public void updateMap(Path path) {
         mLastPath = path;
+
+        int treashold = (int)Utils.getPref(getContext(), Utils.BEACON_SIG_STR_TREASHOLD, -65);
+        BeaconUtils.getAdjustmentPoints(path, treashold);
 
         final PolylineOptions realRoute = new PolylineOptions();
         realRoute.geodesic(true);

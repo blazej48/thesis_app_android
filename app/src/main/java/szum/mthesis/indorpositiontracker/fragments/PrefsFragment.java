@@ -1,6 +1,8 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.fragments;
 
 import android.os.Bundle;
+
+import szum.mthesis.indorpositiontracker.R;
 
 /**
  * Created by blazej on 2/26/2016.

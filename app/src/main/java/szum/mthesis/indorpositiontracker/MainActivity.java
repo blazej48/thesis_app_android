@@ -24,10 +24,18 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import com.orm.SugarContext;
-import com.orm.util.SugarConfig;
+import org.junit.BeforeClass;
 
-import szum.mthesis.indorpositiontracker.entities.Path;
+import java.util.List;
+
+import szum.mthesis.indorpositiontracker.fragments.BeaconsFragment;
+import szum.mthesis.indorpositiontracker.fragments.BeaconsMapFragment;
+import szum.mthesis.indorpositiontracker.fragments.HistoryFragment;
+import szum.mthesis.indorpositiontracker.fragments.MapFragment;
+import szum.mthesis.indorpositiontracker.fragments.PrefsFragment;
+import szum.mthesis.indorpositiontracker.fragments.TrackerFragment;
+import szum.mthesis.indorpositiontracker.orm.Beacon;
+import szum.mthesis.indorpositiontracker.orm.Path;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -178,13 +186,17 @@ public class MainActivity extends AppCompatActivity {
                     return new TrackerFragment();
                 case 3:
                     return new PrefsFragment();
+                case 4:
+                    return new BeaconsFragment();
+                case 5:
+                    return new BeaconsMapFragment();
             }
             return null;
         }
 
         @Override
         public int getCount() {
-            return 4;
+            return 6;
         }
 
         @Override
@@ -198,11 +210,15 @@ public class MainActivity extends AppCompatActivity {
                     return "TRACKER";
                 case 3:
                     return "PREFS";
+                case 4:
+                    return "BEACONS";
+                 case 5:
+                    return "BEACONS MAP";
             }
             return null;
         }
-    }
 
+    }
     @Override
     public void onBackPressed() {
         new AlertDialog.Builder(this)
@@ -229,5 +245,6 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, TrackingService.class);
         stopService(intent);
     }
+
 
 }

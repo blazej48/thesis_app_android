@@ -4,6 +4,8 @@ import android.location.Location;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
+import szum.mthesis.indorpositiontracker.utils.Utils;
+
 /**
  * Created by blazej on 20/03/16.
  */
@@ -65,7 +67,7 @@ public class OrientationTracker {
             Logger.w(TAG,"unable to determine current orientation");
             return 0;
         }
-        return (int)Utils.getOrientation(currentMagneticVector, currentGravityVector, initMagneticVector, initGravityVector);
+        return (int) Utils.getOrientation(currentMagneticVector, currentGravityVector, initMagneticVector, initGravityVector);
     }
 
     public void reset() {

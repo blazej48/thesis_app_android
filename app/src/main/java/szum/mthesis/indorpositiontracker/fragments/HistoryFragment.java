@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.fragments;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -10,8 +10,10 @@ import android.widget.ExpandableListView;
 
 import java.util.List;
 
-import szum.mthesis.indorpositiontracker.entities.GpsLocation;
-import szum.mthesis.indorpositiontracker.entities.Path;
+import szum.mthesis.indorpositiontracker.fragments.adapters.ExpandableListAdapter;
+import szum.mthesis.indorpositiontracker.MainActivity;
+import szum.mthesis.indorpositiontracker.R;
+import szum.mthesis.indorpositiontracker.orm.Path;
 
 public class HistoryFragment extends Fragment{
 

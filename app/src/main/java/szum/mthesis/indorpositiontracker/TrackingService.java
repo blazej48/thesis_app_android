@@ -26,7 +26,6 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.util.Pair;
@@ -42,40 +41,26 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import szum.mthesis.indorpositiontracker.entities.BleSample;
-import szum.mthesis.indorpositiontracker.entities.DbHelper;
-import szum.mthesis.indorpositiontracker.entities.GpsLocation;
-import szum.mthesis.indorpositiontracker.entities.Step;
+import szum.mthesis.indorpositiontracker.orm.Beacon;
+import szum.mthesis.indorpositiontracker.orm.BleSample;
+import szum.mthesis.indorpositiontracker.orm.DbHelper;
+import szum.mthesis.indorpositiontracker.orm.Step;
+import szum.mthesis.indorpositiontracker.utils.TrackingData;
 
 
 public class TrackingService extends Service implements LocationListener {
 
     private static final String TAG = TrackingService.class.getSimpleName();
 
-    private Location lastLocation;
-    private long startWalkingTime = 0; // [ns]
-    private double walkDistance = 0; // [m]
-    private int stepsCount = 0;
-    private long walkTime = 0; // [ns]
-
-    private List<GpsLocation> gpsPoints;
-    private PolylineOptions mRoute;
+    private TrackingData trackingData = new TrackingData();
     private boolean bRunning = false;
-    private List<Step> mStepsPath;
-    private ArrayList<BleSample> bleSamples;
-    private boolean isFirstLocaiton = false;
+    private PolylineOptions mRoute;
 
     private LocationManager mLocationManager;
+    private PowerManager.WakeLock mWakeLock;
+    private BluetoothAdapter mBluetoothAdapter;
 
     private List<DataChangedListener> mListeners = new LinkedList<>();
-
-    private PowerManager.WakeLock mWakeLock;
-
-    private OrientationTracker mOrientTrckr = new OrientationTracker();
-
-    private BluetoothAdapter mBluetoothAdapter;
-    private float mCurrentAccuracy = 0;
-    private long mSystemStartUpTime = 0;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -87,8 +72,10 @@ public class TrackingService extends Service implements LocationListener {
         Logger.d(TAG, "onCreate");
 
         SugarContext.init(this);
+        putSomeExampleBeaconToTheDatabase();
 
 
+        // start service in foreground
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setSmallIcon(android.R.drawable.btn_star);
         builder.setContentTitle("Indoor Position Tracker");
@@ -98,11 +85,10 @@ public class TrackingService extends Service implements LocationListener {
         builder.setContentIntent(pendingIntent);
         startForeground(1, builder.build());
 
+        // keep screen active
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakelockTag");
+        mWakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "MyWakelockTag");
         mWakeLock.acquire();
-
-        mSystemStartUpTime = System.currentTimeMillis() - SystemClock.uptimeMillis();
 
         registerStepDetector();
         reset();
@@ -114,6 +100,7 @@ public class TrackingService extends Service implements LocationListener {
 
         super.onCreate();
     }
+
 
     public void startScanning() {
 
@@ -134,7 +121,7 @@ public class TrackingService extends Service implements LocationListener {
             int rssi = result.getRssi();
             String name = result.getScanRecord().getDeviceName();
             if(bRunning){
-                bleSamples.add(new BleSample(name, result.getTimestampNanos(), rssi));
+                trackingData.addBleSample(new BleSample(name, result.getTimestampNanos() / 1000000, rssi));
             }
         }
 
@@ -171,28 +158,26 @@ public class TrackingService extends Service implements LocationListener {
 //                    countYaw(event.timestamp, event.values);
 //                    break;
                 case Sensor.TYPE_STEP_DETECTOR:
-                    if (isFirstLocaiton) {
-                        Step step = new Step(event.timestamp/1000000, mOrientTrckr.getCurrentOrientation());
-                        mStepsPath.add(step);
+                    if (trackingData.isInitialized()) {
+                        Step step = trackingData.addStep(event.timestamp);
                         Logger.d(TAG, "adding: " + step);
 
-                        if(startWalkingTime <= 0) { // init counting walking time alghoritm
-                            startWalkingTime = event.timestamp;
+                        if(trackingData.isNotWalking()) { // init counting walking time alghoritm
+                            trackingData.setStartWalkingTime(event.timestamp);
                         }
-                        walkTime = event.timestamp - startWalkingTime;
-                        stepsCount++;
-
+                        trackingData.setCurrWalkTime(event.timestamp);
+                        trackingData.incrementStepCounter();
                     }else{
                         Logger.w(TAG, "lacking first GPS location, cannot start stepCounting");
                     }
 
-                    Logger.d(TAG, "New step detected by STEP_DETECTOR sensor, stepsCount = " + stepsCount + ", timestamp = " + event.timestamp);
+                    Logger.d(TAG, "New step detected by STEP_DETECTOR sensor, stepsCount = " + trackingData.getStepCount() + ", timestamp = " + event.timestamp);
                     break;
                 case Sensor.TYPE_GRAVITY:
-                    mOrientTrckr.setCurrentGravityVector(new Vector3D(event.values[0], event.values[1], event.values[2]).normalize());
+                    trackingData.getOrientTrckr().setCurrentGravityVector(new Vector3D(event.values[0], event.values[1], event.values[2]).normalize());
                     break;
                 case Sensor.TYPE_MAGNETIC_FIELD:
-                    mOrientTrckr.setCurrentMagneticVector(new Vector3D(event.values[0], event.values[1], event.values[2]).normalize());
+                    trackingData.getOrientTrckr().setCurrentMagneticVector(new Vector3D(event.values[0], event.values[1], event.values[2]).normalize());
                     break;
             }
         }
@@ -208,18 +193,13 @@ public class TrackingService extends Service implements LocationListener {
         if (!bRunning) {
             return;
         } // check, it GpsListener is started
-        if(isFirstLocaiton == false) {
-            mOrientTrckr.init();
-            isFirstLocaiton = true;
+
+        if(trackingData.isInitialized() == false) {
+            trackingData.initialize();
         }
-        mCurrentAccuracy = location.getAccuracy();
-        mOrientTrckr.processLocation(location);
+        trackingData.processNewLocation(location);
         mRoute.add(new LatLng(location.getLatitude(), location.getLongitude()));
-        gpsPoints.add(new GpsLocation(location, mOrientTrckr.getRealBearing(), mOrientTrckr.getRelativeBearing()));
-        if(lastLocation != null){
-            walkDistance += lastLocation.distanceTo(location);
-        }
-        lastLocation = location;
+
         notifyListeners();
     }
 
@@ -252,21 +232,20 @@ public class TrackingService extends Service implements LocationListener {
     private final IBinder mBinder = new LocalBinder();
 
     public void saveRoute() {
-        DbHelper.saveRoute(mStepsPath, bleSamples, gpsPoints, stepsCount, walkTime / 1000000, (long) walkDistance, (long) mOrientTrckr.getOrientationCorrection());
+        DbHelper.saveRoute(trackingData);
     }
 
     public void forceStart() {
-        isFirstLocaiton = true;
+        trackingData.initialize();
         mRoute.add(new LatLng(1,1));
         bRunning = true;
     }
 
     public class LocalBinder extends Binder {
+
         TrackingService getService() {
-            // Return this instance of LocalService so clients can call public methods
             return TrackingService.this;
         }
-
     }
 
     @Override
@@ -283,33 +262,22 @@ public class TrackingService extends Service implements LocationListener {
         super.onDestroy();
     }
 
-    /** turn GpsLinster on, so it starts generating gps data */
+    /** turn Service on, so it starts generating gps data */
     public synchronized void start() {
         bRunning = true;
     }
 
-    /** make GpsLinster stop generating gps data */
+    /** make Service stop generating gps data */
     public synchronized void stop() {
         bRunning = false;
     }
 
     /** clean generated gps data */
     public synchronized void reset() {
-        bleSamples = new ArrayList<>();
-        gpsPoints = new ArrayList<>();
-        mStepsPath = new ArrayList<>();
+
+        trackingData.reset();
         mRoute = new PolylineOptions();
         mRoute.geodesic(true);
-
-        startWalkingTime = 0;
-        stepsCount = 0;
-        walkTime = 0;
-        lastLocation = null;
-        isFirstLocaiton = false;
-        mCurrentAccuracy = 0;
-        mOrientTrckr.reset();
-        walkDistance = 0;
-
         requestLocationUpdates();
     }
 
@@ -341,7 +309,6 @@ public class TrackingService extends Service implements LocationListener {
                 // for ActivityCompat#requestPermissions for more details.
                 return;
             }
-            Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             Toast.makeText(getApplicationContext(), "on status changed - AVALIABLE", Toast.LENGTH_SHORT);
             Logger.d(TAG, "onStatusChanged - AVALIABLE");
         }
@@ -359,7 +326,11 @@ public class TrackingService extends Service implements LocationListener {
 		return mRoute;
 	}
 
-	public boolean isNotRunning(){
+    public TrackingData getTrackingData() {
+        return trackingData;
+    }
+
+    public boolean isNotRunning(){
 		return ! bRunning;
 	}
 
@@ -367,8 +338,8 @@ public class TrackingService extends Service implements LocationListener {
 		return bRunning;
 	}
 
-	public void registerListener(DataChangedListener listener){
-	    Logger.d(TAG, "registering listener: " + listener);
+	public void registerListener(DataChangedListener listener) {
+        Logger.d(TAG, "registering listener: " + listener);
 	    if( ! mListeners.contains(listener) ){
 	        mListeners.add(listener);
 	    }
@@ -376,7 +347,7 @@ public class TrackingService extends Service implements LocationListener {
 
    public void unregisterListener(DataChangedListener listener){
        Logger.d(TAG, "unregistering listener: " + listener);
-        mListeners.remove(listener);
+       mListeners.remove(listener);
    }
 
    private void notifyListeners(){
@@ -392,13 +363,12 @@ public class TrackingService extends Service implements LocationListener {
        return ! mLocationManager.isProviderEnabled( LocationManager.GPS_PROVIDER );
    }
 
-    public String getInfoText(){
-        StringBuilder builder = new StringBuilder();
-        builder.append(String.format("Walk distance: %.1f m \n",walkDistance));
-        builder.append(String.format("Step count: %d  \n",stepsCount));
-        builder.append(String.format("Walk time: %d s \n",walkTime/1000000000));
-        builder.append(String.format("Estimated orientation correction: %.1f* \n", mOrientTrckr.getOrientationCorrection()));
-        builder.append(String.format("GPS Accuracy: %.3f \n", mCurrentAccuracy));
-        return builder.toString();
+    private void putSomeExampleBeaconToTheDatabase() {
+        String beaconName = "Sample Beacon";
+        List<Beacon> result = Beacon.find(Beacon.class, "name = ?", beaconName);
+        if(result.isEmpty()){
+            new Beacon(beaconName, 49.6267, 6.15937).save();
+        }
     }
+
 }

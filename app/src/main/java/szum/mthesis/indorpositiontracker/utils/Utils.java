@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -9,12 +9,11 @@ import com.google.android.gms.maps.model.LatLng;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import szum.mthesis.indorpositiontracker.entities.GpsLocation;
-import szum.mthesis.indorpositiontracker.entities.Step;
+import szum.mthesis.indorpositiontracker.Logger;
+import szum.mthesis.indorpositiontracker.orm.GpsLocation;
+import szum.mthesis.indorpositiontracker.orm.Step;
 
 /**
  * Created by blazej on 2/26/2016.
@@ -24,6 +23,7 @@ public class Utils {
     private static final String TAG = Utils.class.getSimpleName();
 
     public static final String USE_STEPS_ESTIMATION = "use_steps_estimation";
+    public static final String BEACON_SIG_STR_TREASHOLD = "beacon_sig_str_treashold";
     public static final String CALIBRATION_RATE = "calibration_rate";
 
     public static final int AVG_STEP_DURATION_FACTOR = 9;

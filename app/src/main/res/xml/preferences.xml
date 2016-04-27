@@ -4,6 +4,11 @@
 
     <android.support.v7.preference.EditTextPreference
         android:inputType="number"
+        android:key="beacon_sig_str_treashold"
+        android:defaultValue="-65"
+        android:title="treashold for localising beacons"/>
+    <android.support.v7.preference.EditTextPreference
+        android:inputType="number"
         android:key="calibration_rate"
         android:defaultValue="0"
         android:title="calibration rate 0 - 0.0"/>

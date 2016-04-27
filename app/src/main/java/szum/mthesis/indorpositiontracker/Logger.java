@@ -13,6 +13,8 @@ import java.util.logging.SimpleFormatter;
 
 /**
  * Created by blazej on 01/03/16.
+ *
+ * Logger
  */
 public class Logger {
 
@@ -101,7 +103,9 @@ public class Logger {
 
     public static void clearLog() {
         logs.clear();
-        logListener.setLogs(logs);
+        if (logListener != null) {
+            logListener.setLogs(logs);
+        }
     }
 
     public interface LogListener{

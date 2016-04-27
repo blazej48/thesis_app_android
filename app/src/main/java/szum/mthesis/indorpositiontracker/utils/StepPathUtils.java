@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.utils;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -8,8 +8,9 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.List;
 
-import szum.mthesis.indorpositiontracker.entities.GpsLocation;
-import szum.mthesis.indorpositiontracker.entities.Step;
+import szum.mthesis.indorpositiontracker.orm.GpsLocation;
+import szum.mthesis.indorpositiontracker.orm.Step;
+import szum.mthesis.indorpositiontracker.utils.Utils;
 
 /**
  * Created by blazej on 4/1/2016.

@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.fragments.adapters;
 
 import android.content.Context;
 import android.graphics.Typeface;
@@ -16,7 +16,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import szum.mthesis.indorpositiontracker.entities.Path;
+import szum.mthesis.indorpositiontracker.Logger;
+import szum.mthesis.indorpositiontracker.MainActivity;
+import szum.mthesis.indorpositiontracker.R;
+import szum.mthesis.indorpositiontracker.fragments.HistoryFragment;
+import szum.mthesis.indorpositiontracker.orm.Path;
 
 public class ExpandableListAdapter extends BaseExpandableListAdapter {
 
@@ -68,11 +72,11 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
         				"\nLat: " + paths.get(position).getStartLatitude() +
         				"\nLong: " + paths.get(position).getStartLongitude() +
         				"\nSteps count: " + paths.get(position).getStepCount() +
-        				"\nWalk time: " + paths.get(position).getWalkTime()/1000 + " [s]" +
+        				"\nWalk time: " + paths.get(position).getWalkTime() + " [s]" +
         				"\nOrientation correction: " + paths.get(position).getOrientationCorrection() + " *" +
                         String.format("\nWalk distance: %.1f [m]", paths.get(position).getWalkDistance()) +
                         String.format("\nEstimated step length: %.3f [m]", paths.get(position).getWalkDistance()/(double)paths.get(position).getStepCount()) +
-                        String.format("\nEstimated step frequency: %.3f [1/s]", (double)paths.get(position).getStepCount()/paths.get(position).getWalkTime()*1000) +
+                        String.format("\nEstimated step frequency: %.3f [1/s]", (double)paths.get(position).getStepCount()/paths.get(position).getWalkTime()) +
                         String.format("\nAvg GPS accuracy: %.2f [m]", paths.get(position).getAvgAccuracy());
         } else{
             Logger.w(TAG, "step count is 0 while displaying route info.");

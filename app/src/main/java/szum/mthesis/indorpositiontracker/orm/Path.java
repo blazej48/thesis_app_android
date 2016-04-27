@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker.entities;
+package szum.mthesis.indorpositiontracker.orm;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.orm.SugarRecord;
@@ -100,6 +100,7 @@ public class Path extends SugarRecord {
     public void deletePathAndSubsequentData() {
         Step.deleteAll(Step.class, "path_id = ?", getId().toString());
         GpsLocation.deleteAll(GpsLocation.class, "path_id = ?", getId().toString());
+        BleSample.deleteAll(BleSample.class, "path_id = ?", getId().toString());
         delete();
     }
 
@@ -119,5 +120,9 @@ public class Path extends SugarRecord {
         }
 
         return poly;
+    }
+
+    public List<BleSample> getBleSamples() {
+        return find(BleSample.class, "path_id = ?", getId().toString());
     }
 }

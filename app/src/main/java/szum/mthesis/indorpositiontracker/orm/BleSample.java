@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker.entities;
+package szum.mthesis.indorpositiontracker.orm;
 
 import com.orm.SugarRecord;
 

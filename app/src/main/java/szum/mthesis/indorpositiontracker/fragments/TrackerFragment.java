@@ -1,4 +1,4 @@
-package szum.mthesis.indorpositiontracker;
+package szum.mthesis.indorpositiontracker.fragments;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -25,6 +25,12 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.List;
+
+import szum.mthesis.indorpositiontracker.DataChangedListener;
+import szum.mthesis.indorpositiontracker.Logger;
+import szum.mthesis.indorpositiontracker.MainActivity;
+import szum.mthesis.indorpositiontracker.R;
+import szum.mthesis.indorpositiontracker.TrackingService;
 
 /**
  * This fragment displays information about current route, it adds listener to
@@ -69,7 +75,7 @@ public class TrackerFragment extends Fragment implements DataChangedListener, On
         mMapView.getMapAsync(this);
 
         mInfoText = (TextView) view.findViewById(R.id.infoText);
-        mInfoText.setText(mService.getInfoText());
+        mInfoText.setText(mService.getTrackingData().getInfoText());
 
 
         mStartStop = (ImageView) view.findViewById(R.id.start_stop_switch);
@@ -153,7 +159,7 @@ public class TrackerFragment extends Fragment implements DataChangedListener, On
     @Override
     public void onDataChanged() {
         refreshLayout();
-        mInfoText.setText(mService.getInfoText());
+        mInfoText.setText(mService.getTrackingData().getInfoText());
     }
 
     private void refreshLayout() {
